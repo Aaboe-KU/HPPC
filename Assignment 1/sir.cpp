@@ -50,8 +50,8 @@ public:
 int main() {
 
     // Initial conditions
-    double S0 = 699;
-    double R0 = 300;
+    double S0 = 999;
+    double R0 = 0;
     double I0 = 1;
 
     // Performing simulation
