@@ -1,14 +1,14 @@
-### Guide to Git/GitHub:
+## Guide to Git/GitHub:
 
-0. Initialise Git in ERDA (Must be done every time):
+### 0. Initialise Git in ERDA (Must be done every time):
     -   Open repository folder (/erda_mount/HPPC/)
     -   Open a terminal and run: "git config --global --add safe.directory /home/jovyan/erda_mount/HPPC"
     -   Leave the folder and open it again.
     -   Now the Git tab is active.
 
-2. Do your work. Change/add/remove files.
+### 2. Do your work. Change/add/remove files.
    
-3. In terminal:
+### 3. In terminal:
    - Local Changes
      - ***git status*** : Shows modified files in the working directory.
      - ***git add [file]*** : Adds a file to the staging area.
@@ -27,7 +27,7 @@
       - ***git help [command]***
    - *And much more*
      
-4. In ERDA Git control:
+### 4. In ERDA Git control:
     - Local Changes
        - Select changed files:
           -  If files are under "Untracked": Press "+" (Track)
@@ -41,5 +41,5 @@
         - Push changes: Press "🡅" at the top right to push any committed files to the remote repository. (It'll show a little orange circle if there is anything to push)
             - Will probably need credentials. 
 
-**Remember!**:
-    - Update "↻" and pull "🡇" before making any changes in the code and files!
+# **Remember!**:
+#    - Update "↻" and pull "🡇" before making any changes in the code and files!
