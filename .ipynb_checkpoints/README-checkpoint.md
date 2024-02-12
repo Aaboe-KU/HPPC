@@ -35,11 +35,11 @@
        - At the bottom:
           -  Write a summary.
           -  Press "COMMIT" (Might need credentials):
-    - Update & Publish
-        - **Before anything else!** : Press "↻" at the top right to update local and remote changes!
-        - Pull changes: Press "🡇" at the top right to pull any changes from the remote repository. (It'll show a little orange circle if there is anything to pull)
-        - Push changes: Press "🡅" at the top right to push any committed files to the remote repository. (It'll show a little orange circle if there is anything to push)
-            - Will probably need credentials. 
+       - Update & Publish
+          - **Before anything else!** : Press "↻" at the top right to update local and remote changes!
+          - Pull changes: Press "🡇" at the top right to pull any changes from the remote repository. (It'll show a little orange circle if there is anything to pull)
+          - Push changes: Press "🡅" at the top right to push any committed files to the remote repository. (It'll show a little orange circle if there is anything to push)
+             - Will probably need credentials. 
 
 # **Remember!**:
 #    - Update "↻" and pull "🡇" before making any changes in the code and files!
