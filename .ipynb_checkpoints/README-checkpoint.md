@@ -9,13 +9,13 @@
 ### 2. Do your work. Change/add/remove files.
 
 ### 3. In ERDA Git control:
-   - Local Changes
+   - How to operate Git in ERDA:
        - Select changed files:
           -  If files are under "Untracked": Press "+" (Track)
           -  If files are under "Changed": Press "+" (Stage)
        - At the bottom:
           -  Write a summary.
-          -  Press "COMMIT" (Might need credentials):
+          -  Press "COMMIT" (Might need credentials)
        - Update & Publish
           - **Before anything else!** : Press "↻" at the top right to update local and remote changes!
           - Pull changes: Press "🡇" at the top right to pull any changes from the remote repository. (It'll show a little orange circle if there is anything to pull)
