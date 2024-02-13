@@ -7,8 +7,25 @@
    -   Now the Git tab is active.
 
 ### 2. Do your work. Change/add/remove files.
-   
-### 3. In terminal:
+
+### 3. In ERDA Git control:
+   - Local Changes
+       - Select changed files:
+          -  If files are under "Untracked": Press "+" (Track)
+          -  If files are under "Changed": Press "+" (Stage)
+       - At the bottom:
+          -  Write a summary.
+          -  Press "COMMIT" (Might need credentials):
+       - Update & Publish
+          - **Before anything else!** : Press "↻" at the top right to update local and remote changes!
+          - Pull changes: Press "🡇" at the top right to pull any changes from the remote repository. (It'll show a little orange circle if there is anything to pull)
+          - Push changes: Press "🡅" at the top right to push any committed files to the remote repository. (It'll show a little orange circle if there is anything to push)
+             - Will probably need credentials. 
+
+# **Remember!**:
+#    - Update "↻" and pull "🡇" before making any changes in the code and files!
+
+### 4. In terminal:
    - Local Changes
      - ***git status*** : Shows modified files in the working directory.
      - ***git add [file]*** : Adds a file to the staging area.
@@ -26,20 +43,3 @@
    - Help
       - ***git help [command]***
    - *And much more*
-     
-### 4. In ERDA Git control:
-   - Local Changes
-       - Select changed files:
-          -  If files are under "Untracked": Press "+" (Track)
-          -  If files are under "Changed": Press "+" (Stage)
-       - At the bottom:
-          -  Write a summary.
-          -  Press "COMMIT" (Might need credentials):
-       - Update & Publish
-          - **Before anything else!** : Press "↻" at the top right to update local and remote changes!
-          - Pull changes: Press "🡇" at the top right to pull any changes from the remote repository. (It'll show a little orange circle if there is anything to pull)
-          - Push changes: Press "🡅" at the top right to push any committed files to the remote repository. (It'll show a little orange circle if there is anything to push)
-             - Will probably need credentials. 
-
-# **Remember!**:
-#    - Update "↻" and pull "🡇" before making any changes in the code and files!
