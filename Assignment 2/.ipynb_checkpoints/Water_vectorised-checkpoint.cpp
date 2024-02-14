@@ -61,22 +61,6 @@ double dot(const Vec3& a, const Vec3& b){
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-/* atom class */
-class Atom {
-public:
-    // The mass of the atom in (U)
-    double mass;
-    double ep;            // epsilon for LJ potential
-    double sigma;         // Sigma, somehow the size of the atom
-    double charge;        // charge of the atom (partial charge)
-    std::string name;     // Name of the atom
-    // the position in (nm), velocity (nm/ps) and forces (k_BT/nm) of the atom
-    Vec3 p,v,f;
-    // constructor, takes parameters and allocates p, v and f properly
-    Atom(double mass, double ep, double sigma, double charge, std::string name) 
-    : mass{mass}, ep{ep}, sigma{sigma}, charge{charge}, name{name}, p{0,0,0}, v{0,0,0}, f{0,0,0}
-    {}
-};
 
 /* a class for the bond between two atoms U = 0.5k(r12-L0)^2 */
 class Bond {
@@ -92,14 +76,6 @@ public:
     double K;
     double Phi0;
     int a1, a2, a3; // the indexes of the three atoms, with a2 being the centre atom
-};
-
-/* molecule class */
-class Molecule {
-public:
-    std::vector<Atom> atoms;          // list of atoms in the molecule
-    std::vector<Bond> bonds;          // the bond potentials, eg for water the left and right bonds
-    std::vector<Angle> angles;        // the angle potentials, for water just the single one, but keep it a list for generality
 };
 
 // ===============================================================================
@@ -184,6 +160,7 @@ public:
 // Given a bond, updates the force on all atoms correspondingly
 void UpdateBondForces(System& sys){
     Molecules& molecule = sys.molecules;
+    //molecule.no_mol = sc.no_mol;
     // Loops over the (2 for water) bond constraints
     for (Bond& bond : molecule.bonds)
     for (int i = 0; i < molecule.no_mol; i++) {
@@ -337,6 +314,7 @@ System MakeWater(int N_molecules){
     sys.molecules.atoms.push_back(Hatom2);
     sys.molecules.bonds = waterbonds;
     sys.molecules.angles = waterangle;
+    sys.molecules.no_mol = N_molecules;
     
     // Store atoms, bonds and angles in Water class and return
     return sys;
