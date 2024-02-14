@@ -1,6 +1,6 @@
 ## Guide to Git/GitHub:
 
-### 0. Initialise Git in ERDA (Must be done every time):
+### 1. Initialise Git in ERDA (Must be done every time):
    -   Open repository folder (/erda_mount/HPPC/)
    -   Open a terminal and run: "git config --global --add safe.directory /home/jovyan/erda_mount/HPPC"
    -   Leave the folder and open it again.
