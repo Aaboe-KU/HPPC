@@ -1,9 +1,3 @@
-/*
-  Assignment: Make an MPI task farm for analysing HEP data
-  To "execute" a task, the worker computes the accuracy of a specific set of cuts.
-  The resulting accuracy should be send back from the worker to the master.
-*/
-
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -14,7 +8,6 @@
 #include <array>
 #include <vector>
 
-// To run an MPI program we always need to include the MPI headers
 #include <mpi.h>
 
 // Number of cuts to try out for each event channel.
@@ -152,22 +145,22 @@ void master (int nworker, Data& ds) {
 
     // ================================================================
     
-    //IMPLEMENT HERE THE CODE FOR THE MASTER
-    //The master should pass a set of settings to a worker, and the worker should return the accuracy
-     for (int i = 0; i < nworker; i++) {
-            MPI_Send(&settings[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD); }
+
+    // initialize: send a task to each worker
+    for (int i = 0; i < nworker; i++) {
+        MPI_Send(&settings[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD); }
 
     int sent_tasks = nworker;
     int recieved = 0;
   
-    while (sent_tasks < n_settings) {
+    while (sent_tasks < n_settings) {  // loop until all tasks have been sent
         MPI_Status status;
-        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);  // recieve from any worker
 
         // Get the source from the status object
         int source = status.MPI_SOURCE;
 
-        MPI_Send(&settings[sent_tasks], 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
+        MPI_Send(&settings[sent_tasks], 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);  // send new task to this worker
         sent_tasks++;
         recieved++;
         }
@@ -175,18 +168,11 @@ void master (int nworker, Data& ds) {
     stop_signal[0] = -100.0;
     for (int i = 0; i < nworker; i++) {
         MPI_Status status;
-        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);  // recieve last result from worker
         int source = status.MPI_SOURCE;
-        MPI_Send(&stop_signal, 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
+        MPI_Send(&stop_signal, 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);  // send stop signal to worker
         recieved++;
     }
-
-    // THIS CODE SHOULD BE REPLACED BY TASK FARM
-    // loop over all possible cuts and evaluate accuracy
-    //for (long k=0; k<n_settings; k++)
-        //accuracy[k] = task_function(settings[k], ds);
-    // THIS CODE SHOULD BE REPLACED BY TASK FARM
-    // ================================================================
 
     auto tend = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
     // diagnostics
@@ -213,19 +199,15 @@ void master (int nworker, Data& ds) {
 }
 
 void worker (int rank, Data& ds) {
-    /*
-    IMPLEMENT HERE THE CODE FOR THE WORKER
-    Use a call to "task_function" to complete a task and return accuracy to master.
-    */
 
     while (true) {
         std::array<double, 8> received_task;
-        MPI_Recv(&received_task, 8, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        if (received_task[0] == -100.0) break;
+        MPI_Recv(&received_task, 8, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  // recieve task from master
+        if (received_task[0] == -100.0) break;  // stop if master has sent stop signal
     
-        double acc = task_function(received_task, ds);
+        double acc = task_function(received_task, ds);  // perform task
     
-        MPI_Send(&acc, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&acc, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);  // send result to master
         }
 }
 
