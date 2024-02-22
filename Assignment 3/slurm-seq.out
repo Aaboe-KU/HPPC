@@ -1,0 +1,14 @@
+Best accuracy obtained :0.736576
+Final cuts :
+averageInteractionsPerCrossing : 41.3766
+                        p_Rhad : 0.05993
+                       p_Rhad1 : 0.0377865
+           p_TRTTrackOccupancy : 0.468433
+                p_topoetcone40 : 4.96027
+            p_eTileGap3Cluster : 0.391874
+                  p_phiModCalo : 1.51578e-05
+                  p_etaModCalo : 0.0125259
+
+Number of settings:     6561
+Elapsed time      :    17.29
+task time [mus]   :     2635

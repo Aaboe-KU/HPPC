@@ -170,7 +170,6 @@ void master (int nworker, Data& ds) {
         MPI_Send(&settings[sent_tasks], 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
         sent_tasks++;
         recieved++;
-        std::cout << sent_tasks << "\n";
         }
     std::array<double, 8> stop_signal;
     stop_signal[0] = -100.0;
