@@ -32,33 +32,52 @@ void master (int nworker) {
         t = distribution(engine);   // set up some "tasks"
     }
 
-    
-
-    for (int i = 0; i < nworker; i++) {
-            MPI_Send(&task[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD); }
-
-    int sent_tasks = nworker;
-    int recieved = 0;
-  
-    while (sent_tasks < NTASKS) {
-        MPI_Status status;
-        MPI_Recv(&result[recieved], 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-
-        // Get the source from the status object
-        int source = status.MPI_SOURCE;
-
-        MPI_Send(&task[sent_tasks], 1, MPI_INT, source, 0, MPI_COMM_WORLD);
-        sent_tasks++;
-        recieved++;
-        
+    int finished_tasks;
+    int run = 0;
+    while (finished_tasks < NTASKS) {
+        // Sending
+        for (int i = 0; i < nworker; i++) {
+            MPI_Send(&task[i+run*nworker], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD);
         }
-    int stop_signal = -1;
+    
+        // Receiving
+        for (int i = 0; i < nworker; i++) {
+            MPI_Request request;
+            MPI_Status status;
+            MPI_Irecv(&result[i+run*nworker], 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &request);
+
+            // Testing if we have received a result
+            int flag = 0;
+            auto start = std::chrono::high_resolution_clock::now();
+
+            while (!flag) {
+                // Check if the message has been received
+                MPI_Test(&request, &flag, &status);
+    
+                // Check for timeout (1 second)
+                auto now = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - start);
+                if (duration.count() >= 1) {
+                    // Timeout reached, cancel the receive and resend the task
+                    MPI_Cancel(&request);
+                    MPI_Send(&task[status.MPI_SOURCE+run*nworker-1], 1, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
+    
+                    // Reset the flag and start time, and start another non-blocking receive
+                    flag = 0;
+                    start = std::chrono::high_resolution_clock::now();
+                    MPI_Irecv(&result[i+run*nworker], 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &request);
+                    }
+                }
+
+            finished_tasks++;
+            }
+
+         run++;   
+        }
+
     for (int i = 0; i < nworker; i++) {
-        MPI_Status status;
-        MPI_Recv(&result[recieved], 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-        int source = status.MPI_SOURCE;
-        MPI_Send(&stop_signal, 1, MPI_INT, source, 0, MPI_COMM_WORLD);
-        recieved++;
+        int stop_signal = -1;
+        MPI_Send(&stop_signal, 1, MPI_INT, i+1, 0, MPI_COMM_WORLD);
     }
 
     // Print out a status on how many tasks were completed by each worker
@@ -70,7 +89,7 @@ void master (int nworker) {
             workdone += task[itask];
         }
         std::cout << "Master: Worker " << worker << " solved " << tasksdone << 
-                    " tasks" << "corresponding to the work " << workdone << "\n";    
+                    " tasks\n";    
     }
 }
 
@@ -80,7 +99,7 @@ void task_function(int task) {
 }
 
 void worker (int rank) {
-  
+
     while (true) {
     int received_task;
     MPI_Recv(&received_task, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
