@@ -151,15 +151,41 @@ void master (int nworker, Data& ds) {
     auto tstart = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
 
     // ================================================================
-    /*
-    IMPLEMENT HERE THE CODE FOR THE MASTER
-    The master should pass a set of settings to a worker, and the worker should return the accuracy
-    */
+    
+    //IMPLEMENT HERE THE CODE FOR THE MASTER
+    //The master should pass a set of settings to a worker, and the worker should return the accuracy
+     for (int i = 0; i < nworker; i++) {
+            MPI_Send(&settings[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD); }
+
+    int sent_tasks = nworker;
+    int recieved = 0;
+  
+    while (sent_tasks < n_settings) {
+        MPI_Status status;
+        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+
+        // Get the source from the status object
+        int source = status.MPI_SOURCE;
+
+        MPI_Send(&settings[sent_tasks], 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
+        sent_tasks++;
+        recieved++;
+        std::cout << sent_tasks << "\n";
+        }
+    std::array<double, 8> stop_signal;
+    stop_signal[0] = -100.0;
+    for (int i = 0; i < nworker; i++) {
+        MPI_Status status;
+        MPI_Recv(&accuracy[recieved], 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+        int source = status.MPI_SOURCE;
+        MPI_Send(&stop_signal, 8, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
+        recieved++;
+    }
 
     // THIS CODE SHOULD BE REPLACED BY TASK FARM
     // loop over all possible cuts and evaluate accuracy
-    for (long k=0; k<n_settings; k++)
-        accuracy[k] = task_function(settings[k], ds);
+    //for (long k=0; k<n_settings; k++)
+        //accuracy[k] = task_function(settings[k], ds);
     // THIS CODE SHOULD BE REPLACED BY TASK FARM
     // ================================================================
 
@@ -192,6 +218,16 @@ void worker (int rank, Data& ds) {
     IMPLEMENT HERE THE CODE FOR THE WORKER
     Use a call to "task_function" to complete a task and return accuracy to master.
     */
+
+    while (true) {
+        std::array<double, 8> received_task;
+        MPI_Recv(&received_task, 8, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (received_task[0] == -100.0) break;
+    
+        double acc = task_function(received_task, ds);
+    
+        MPI_Send(&acc, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        }
 }
 
 int main(int argc, char *argv[]) {
