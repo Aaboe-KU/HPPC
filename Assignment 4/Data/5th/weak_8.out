@@ -1,0 +1,7 @@
+Number of threads=8
+Wave zero-point        : -2.3979e-09
+Seismogram first coeff : -0.014087, -0.017407, -0.019272, -0.019317
+Elapsed time for FFTs  :    3.432
+Elapsed time without FFTs:   0.9796
+Elapsed time:    4.412
+Checksum    :    23.2912758885993
