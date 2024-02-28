@@ -2,9 +2,9 @@
 #SBATCH --job-name=Seismogram
 #SBATCH --partition=modi_HPPC
 #SBATCH --nodes=1 --ntasks=1 --threads-per-core=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=64
 #SBATCH --exclusive
-#SBATCH --output=
+#SBATCH --output=weak_64.out
 
 # set loop scheduling to static
 export OMP_SCHEDULE=static
@@ -23,4 +23,4 @@ echo Number of threads=$OMP_NUM_THREADS
 # uncomment to write info about binding and environment variables to screen
 #export OMP_DISPLAY_ENV=true
 
-apptainer exec ~/modi_images/ucphhpc/hpc-notebook:latest ./mp
+apptainer exec ~/modi_images/ucphhpc/hpc-notebook:latest ./mp64
