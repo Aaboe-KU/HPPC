@@ -4,6 +4,7 @@
 #SBATCH --nodes=1 --ntasks=1 --threads-per-core=1
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
+#SBATCH --output=
 
 # set loop scheduling to static
 export OMP_SCHEDULE=static
