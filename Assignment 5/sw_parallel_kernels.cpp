@@ -66,7 +66,6 @@ public:
     grid_t v{}; // The speed in the vertical direction.
     grid_t e{}; // The water elevation.
     Water() {
-        #pragma acc kernels
         for (size_t i = 1; i < NY - 1; ++i) 
         for (size_t j = 1; j < NX - 1; ++j) {
             real_t ii = 100.0 * (i - (NY - 2.0) / 2.0) / NY;
