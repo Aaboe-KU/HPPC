@@ -50,14 +50,13 @@ public:
 double checksum(World &world) {
     // 
     double cs=0;
-    double cs_rank=0;
     // TODO: make sure checksum is computed globally
     // only loop *inside* data region -- not in ghostzones!
-    for (uint64_t i = 1; i < world.latitude - 1; ++i)
-    for (uint64_t j = 1; j < world.longitude - 1; ++j) {
-        cs_rank += world.data[i*world.longitude + j];
+    for (uint64_t i = 0; i < world.latitude; ++i)
+    for (uint64_t j = 0; j < world.longitude; ++j) {
+        cs += world.data[i*world.longitude + j];
     }
-    MPI_Reduce(&cs_rank, &cs, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    //MPI_Reduce(&cs_rank, &cs, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     
     return cs;
 }
@@ -83,7 +82,7 @@ void stat(World &world) {
     //MPI_Reduce(&meant_rank, &meant, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD); 
     
     
-    meant = meant / (world.global_latitude * world.global_longitude);
+    meant = meant / (world.latitude * world.longitude);
     std::cout <<   "min: " << mint
               << ", max: " << maxt
               << ", avg: " << meant << std::endl;
@@ -120,8 +119,8 @@ void exchange_ghost_cells(World &world, MPI_Comm &comm1D) {
     
     MPI_Isend(emitleft.data(), world.latitude, MPI_DOUBLE, neigh_left[0], 0, comm1D, &request_el);
     MPI_Isend(emitright.data(), world.latitude, MPI_DOUBLE, neigh_right[0], 0, comm1D, &request_er); 
-    MPI_Irecv(recvleft.data(),  world.latitude, MPI_DOUBLE, neigh_right[0], 0, comm1D, &request_rl);
-    MPI_Irecv(recvright.data(),  world.latitude, MPI_DOUBLE, neigh_left[0], 0, comm1D, &request_rr);
+    MPI_Irecv(recvleft.data(),  world.latitude, MPI_DOUBLE, neigh_left[0], 0, comm1D, &request_rl);
+    MPI_Irecv(recvright.data(),  world.latitude, MPI_DOUBLE, neigh_right[0], 0, comm1D, &request_rr);
     MPI_Wait(&request_el, &stat_);
     MPI_Wait(&request_er, &stat_);
     MPI_Wait(&request_rl, &stat_);
@@ -313,6 +312,8 @@ void simulate(uint64_t num_of_iterations, const std::string& model_filename, con
     // set up counters and loop for num_iterations of integration steps
     const double delta_time = world.global_longitude / 36.0;
 
+    std::cout << "Starting loop " << mpi_rank << std::endl;
+    
     auto begin = std::chrono::steady_clock::now();
     for (uint64_t iteration=0; iteration < num_of_iterations; ++iteration) {
         world.time = iteration / delta_time;
@@ -321,7 +322,7 @@ void simulate(uint64_t num_of_iterations, const std::string& model_filename, con
         // TODO: gather the Temperature on rank zero
         // remove ghostzones and construct global data from local data        
         for (uint64_t i = 1; i < latitude-1; ++i) {
-            MPI_Gather(world.data.data() + i * longitude + 1, longitude-2, MPI_DOUBLE, global_world.data.data() + (i + offset_latitude) * world.global_longitude + offset_longitude + 1, latitude-2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Gather(world.data.data() + i * longitude + 1, longitude-2, MPI_DOUBLE, global_world.data.data() + (i + offset_latitude) * world.global_longitude + offset_longitude + 1, longitude-2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         }
             
         if (!output_filename.empty()) {
@@ -334,10 +335,12 @@ void simulate(uint64_t num_of_iterations, const std::string& model_filename, con
         }
     }
     auto end = std::chrono::steady_clock::now();
-    
-    stat(world);
-    std::cout << "checksum      : " << checksum(world) << std::endl;
-    std::cout << "elapsed time  : " << (end - begin).count() / 1000000000.0 << " sec" << std::endl;
+
+    if (mpi_rank == 0) {
+        stat(global_world);
+        std::cout << "checksum      : " << checksum(global_world) << std::endl;
+        std::cout << "elapsed time  : " << (end - begin).count() / 1000000000.0 << " sec" << std::endl;        
+    }
 }
 
 /** Main function that parses the command line and start the simulation */
@@ -395,7 +398,7 @@ int main(int argc, char **argv) {
                                     "(e.g. --iter 10)");
 
     simulate(iterations, model_filename, output_filename);
-
+    
     MPI_Finalize();
 
     return 0;
