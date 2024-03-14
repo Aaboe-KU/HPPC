@@ -12,8 +12,6 @@ int mpi_size;
 // Get the rank of the process
 int mpi_rank;
 
-int nproc_lat, nproc_lon;
-
 /** Representation of a flat world */
 class World {
 public:
@@ -51,13 +49,17 @@ public:
 
 double checksum(World &world) {
     // 
-    double cs=0;
+    double cs = 0;
+    // double cs_rank = 0;
     // TODO: make sure checksum is computed globally
     // only loop *inside* data region -- not in ghostzones!
-    for (uint64_t i = 1; i < world.latitude - 1; ++i)
-    for (uint64_t j = 1; j < world.longitude - 1; ++j) {
+    for (uint64_t i = 0; i < world.latitude; ++i)
+    for (uint64_t j = 0; j < world.longitude; ++j) {
         cs += world.data[i*world.longitude + j];
     }
+
+    // MPI_Reduce(&cs_rank, &cs, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    
     return cs;
 }
 
@@ -66,16 +68,25 @@ void stat(World &world) {
     double mint = 1e99;
     double maxt = 0;
     double meant = 0;
-    for (uint64_t i = 1; i < world.latitude - 1; ++i)
-    for (uint64_t j = 1; j < world.longitude - 1; ++j) {
+    // double mint_rank;
+    // double maxt_rank;
+    // double meant_rank = 0;
+    for (uint64_t i = 0; i < world.latitude; ++i)
+    for (uint64_t j = 0; j < world.longitude; ++j) {
         mint = std::min(mint,world.data[i*world.longitude + j]);
         maxt = std::max(maxt,world.data[i*world.longitude + j]);
         meant += world.data[i*world.longitude + j];
     }
-    meant = meant / (world.global_latitude * world.global_longitude);
+
+    // MPI_Reduce(&mint_rank, &mint, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+    // MPI_Reduce(&maxt_rank, &maxt, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    // MPI_Reduce(&meant_rank, &meant, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    meant = meant / (world.latitude * world.longitude);
     std::cout <<   "min: " << mint
               << ", max: " << maxt
               << ", avg: " << meant << std::endl;
+    
 }
 
 /** Exchange the ghost cells i.e. copy the second data row and column to the very last data row and column and vice versa.
@@ -172,7 +183,6 @@ void integrate(World& world) {
  * @return         A new world based on the HDF5 file.
  */
 World read_world_model(const std::string& filename) {
-    //std::cout << filename << std::endl;
     H5::H5File file(filename, H5F_ACC_RDONLY);
     H5::DataSet dataset = file.openDataSet("world");
     H5::DataSpace dataspace = dataset.getSpace();
@@ -231,42 +241,31 @@ void simulate(uint64_t num_of_iterations, const std::string& model_filename, con
 
     // for simplicity, read in full model
     World global_world = read_world_model(model_filename);
-    double global_world_copy [global_world.longitude*global_world.latitude];
-    nproc_lon = mpi_size;
-    nproc_lat = 1;
-    int dims[2] = {nproc_lat, nproc_lon};
+    // uint64_t global_world_size = global_world.longitude * global_world.latitude;
+
+    int ndims = 2;
+    int dims[ndims] = {1, mpi_size};
     int periods[2] = {1, 1};
-    int coords[2];
+    int coordinates[2];
+
     MPI_Dims_create(mpi_size, 2, dims);
-    MPI_Comm cart_comm;
-    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &cart_comm);
-    MPI_Cart_coords(cart_comm, mpi_rank, 2, coords);
+    MPI_Comm comm2D;
+    MPI_Cart_create(MPI_COMM_WORLD, ndims, dims, periods, 0, &comm2D);
+    MPI_Cart_coords(comm2D, mpi_rank, ndims, coordinates);
 
-    int nleft, nright, nbottom, ntop;
-    MPI_Cart_shift(cart_comm, 1, 1, &nleft, &nright);
-    MPI_Cart_shift(cart_comm, 0, 1, &nbottom, &ntop);
-    
+    int master_rank = 0;
+
+    int neigh_up, neigh_down, neigh_left, neigh_right;
+    MPI_Cart_shift(comm2D, 0, 1, &neigh_down, &neigh_up);
+    MPI_Cart_shift(comm2D, 1, 1, &neigh_left, &neigh_right);
+
+    // TODO: compute offsets according to rank and domain decomposition
     // figure out size of domain for this rank
-    const long int offset_longitude = global_world.longitude*coords[1]/nproc_lon-1; // -1 because first cell is a ghostcell
-    const long int offset_latitude  = global_world.latitude*coords[0]/nproc_lat-1;
-
-    const uint64_t longitude = global_world.longitude/nproc_lon + 2; // one ghost cell on each end
-    const uint64_t latitude  = global_world.latitude/nproc_lat  + 2;
-    /*MPI_Datatype sub_world_recv_type;
-    MPI_Type_vector(longitude-2,
-		    latitude-2,
-		    global_world.longitude,
-		    MPI_DOUBLE,
-		    &sub_world_recv_type);
-    MPI_Type_commit(&sub_world_recv_type);
-
-    MPI_Datatype sub_world_send_type;
-    MPI_Type_vector(longitude-2,
-		    latitude-2,
-		    longitude,
-		    MPI_DOUBLE,
-		    &sub_world_send_type);
-    MPI_Type_commit(&sub_world_send_type);*/
+    const long int offset_longitude = -1 + global_world.longitude * coordinates[1] / mpi_size; // -1 because first cell is a ghostcell
+    const long int offset_latitude  = -1 + global_world.latitude * coordinates[0];
+    const uint64_t longitude = global_world.longitude / mpi_size + 2; // one ghost cell on each end
+    const uint64_t latitude  = global_world.latitude + 2;
+    const uint64_t local_world_size = longitude * latitude;
 
     // copy over albedo data to local world data
     std::vector<double> albedo(longitude*latitude);
@@ -294,32 +293,34 @@ void simulate(uint64_t num_of_iterations, const std::string& model_filename, con
 
         // TODO: gather the Temperature on rank zero
         // remove ghostzones and construct global data from local data
+        std::vector<double> local_world_no_ghosts;
+        for (uint64_t i = 0; i<local_world_size; i++) {
+            if (i%longitude == 0 || i%longitude == longitude-1) continue;
+            if (i < longitude || i > (latitude - 1) * longitude) continue;
+            local_world_no_ghosts.push_back(world.data[i]);
+        }
 
-        
-    std::vector <double> world_WO_ghost; // World_WithOut_ghost cells
-    for (int i = 0; i<(latitude)*(longitude); i++){
-            if (i%longitude == 0 || i%longitude == longitude -1){continue;}
-            if (i < longitude || i > (latitude-1)*longitude) continue;
-            world_WO_ghost.push_back( world.data[i]);
-    }
-    
-    MPI_Gather(world_WO_ghost.data(), world_WO_ghost.size(), MPI_DOUBLE, global_world.data.data(), world_WO_ghost.size(), MPI_DOUBLE, 0,cart_comm);
-        
-       if (!output_filename.empty()) {
+        MPI_Gather(local_world_no_ghosts.data(), local_world_no_ghosts.size(), MPI_DOUBLE, global_world.data.data(), 
+                    local_world_no_ghosts.size(), MPI_DOUBLE, master_rank, comm2D);
+
+        if (!output_filename.empty()) {
             // Only rank zero writes water history to file
             if (mpi_rank == 0) {
+                
                 write_hdf5(global_world, output_filename, iteration);
                 std::cout << iteration << " -- ";
                 stat(global_world);
             }
         }
     }
-    if (mpi_rank==0){
-    auto end = std::chrono::steady_clock::now();
-    
-    stat(world);
-    std::cout << "checksum      : " << checksum(global_world) << std::endl;
-    std::cout << "elapsed time  : " << (end - begin).count() / 1000000000.0 << " sec" << std::endl;
+
+    if (mpi_rank == master_rank) {
+
+        auto end = std::chrono::steady_clock::now();
+        
+        stat(global_world);
+        std::cout << "checksum      : " << checksum(global_world) << std::endl;
+        std::cout << "elapsed time  : " << (end - begin).count() / 1000000000.0 << " sec" << std::endl;
     }
 }
 
@@ -376,6 +377,7 @@ int main(int argc, char **argv) {
     if (iterations==0)
         throw std::invalid_argument("You must specify the number of iterations "
                                     "(e.g. --iter 10)");
+
     simulate(iterations, model_filename, output_filename);
 
     MPI_Finalize();
