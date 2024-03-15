@@ -67,13 +67,13 @@ void stat(World &world) {
     double mint = 1e99;
     double maxt = 0;
     double meant = 0;
-    double mint_rank;
-    double maxt_rank; 
+    double mint_rank = 1e99;
+    double maxt_rank = 0; 
     double meant_rank = 0;
     for (uint64_t i = 1; i < world.latitude-1; ++i)
     for (uint64_t j = 1; j < world.longitude-1; ++j) {
-        mint_rank = std::min(mint,world.data[i*world.longitude + j]);
-        maxt_rank = std::max(maxt,world.data[i*world.longitude + j]);
+        mint_rank = std::min(mint_rank,world.data[i*world.longitude + j]);
+        maxt_rank = std::max(maxt_rank,world.data[i*world.longitude + j]);
         meant_rank += world.data[i*world.longitude + j];
     }
 
